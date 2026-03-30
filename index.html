@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Liquid Glass Playground | SOTD Synthesis</title>
+    
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg: #030303;
+            --fg: #f4f4f5;
+            --accent: #ff3366;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none; /* Custom cursor */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif;
+            overflow: hidden;
+            touch-action: none; /* Prevents mobile scrolling */
+        }
+
+        #webgl-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #webgl-container.ready {
+            opacity: 1;
+        }
+
+        /* Brutalist / Minimalist UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: clamp(1.5rem, 4vw, 3rem);
+            mix-blend-mode: difference;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .hud-stats {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-variant-numeric: tabular-nums;
+            opacity: 0.8;
+        }
+
+        footer {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 6rem);
+            font-weight: 700;
+            line-height: 0.9;
+            letter-spacing: -0.03em;
+            max-width: 14ch;
+        }
+
+        .subtitle {
+            font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+            font-weight: 300;
+            opacity: 0.7;
+            max-width: 400px;
+            line-height: 1.4;
+        }
+
+        /* Custom Cursor */
+        #cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            border: 1.5px solid var(--fg);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference;
+        }
+
+        #cursor.active {
+            width: 40px;
+            height: 40px;
+            background-color: var(--fg);
+        }
+
+        /* Error Fallback */
+        #error-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 100;
+            padding: 2rem;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .error-content {
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 3rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas -->
+    <div id="webgl-container"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        <header>
+            <div>SOTD Synthesis<br>Vol. 01</div>
+            <div class="hud-stats">
+                <span id="fps-counter">60 FPS</span>
+                <span id="blob-counter">BLOBS: 0</span>
+            </div>
+        </header>
+
+        <footer>
+            <h1>LIQUID<br>GLASS.</h1>
+            <p class="subtitle">Physics-driven refraction engine. Move cursor to displace. Tap to spawn structural bodies.</p>
+        </footer>
+    </div>
+
+    <!-- Custom Cursor -->
+    <div id="cursor"></div>
+
+    <!-- Fallback Screen -->
+    <div id="error-screen">
+        <div class="error-content">
+            <h2>SYSTEM FAULT</h2>
+            <p style="margin-top: 1rem; opacity: 0.7;">WebGL environment failed to initialize. Device unsupported.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // ==========================================
+        // SYSTEM VERIFICATION & FALLBACK
+        // ==========================================
+        function checkWebGL() {
+            try {
+                const canvas = document.createElement('canvas');
+                return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        if (!checkWebGL()) {
+            document.getElementById('error-screen').style.display = 'flex';
+            throw new Error('WebGL not supported');
+        }
+
+        // ==========================================
+        // CUSTOM PHYSICS ENGINE (2D Verlet mapped to 3D)
+        // ==========================================
+        class PhysicsWorld {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                this.bodies = [];
+                this.friction = 0.96;
+                this.mouseInteractionRadius = 150;
+                this.mouseForce = 0.5;
+            }
+
+            addBody(x, y, radius) {
+                const body = {
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    radius: radius,
+                    mass: radius * 0.5,
+                    mesh: null // Mapped later
+                };
+                this.bodies.push(body);
+                return body;
+            }
+
+            update(mouseX, mouseY, cursorVelocity) {
+                // Iterations for stability
+                const iterations = 3;
+                
+                for (let k = 0; k < iterations; k++) {
+                    // Update positions & Apply constraints
+                    for (let i = 0; i < this.bodies.length; i++) {
+                        let b = this.bodies[i];
+                        
+                        if (k === 0) {
+                            // Apply friction
+                            b.vx *= this.friction;
+                            b.vy *= this.friction;
+
+                            // Apply mouse interaction force
+                            let dx = mouseX - b.x;
+                            let dy = mouseY - b.y;
+                            let dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < this.mouseInteractionRadius) {
+                                let force = (this.mouseInteractionRadius - dist) / this.mouseInteractionRadius;
+                                b.vx += (cursorVelocity.x * force * this.mouseForce);
+                                b.vy += (cursorVelocity.y * force * this.mouseForce);
+                            }
+
+                            // Update position
+                            b.x += b.vx;
+                            b.y += b.vy;
+                        }
+
+                        // Boundary constraints (bounce)
+                        const boundsX = this.width / 2;
+                        const boundsY = this.height / 2;
+
+                        if (b.x < -boundsX + b.radius) { b.x = -boundsX + b.radius; b.vx *= -0.8; }
+                        if (b.x > boundsX - b.radius) { b.x = boundsX - b.radius; b.vx *= -0.8; }
+                        if (b.y < -boundsY + b.radius) { b.y = -boundsY + b.radius; b.vy *= -0.8; }
+                        if (b.y > boundsY - b.radius) { b.y = boundsY - b.radius; b.vy *= -0.8; }
+                    }
+
+                    // Solve collisions
+                    for (let i = 0; i < this.bodies.length; i++) {
+                        for (let j = i + 1; j < this.bodies.length; j++) {
+                            let b1 = this.bodies[i];
+                            let b2 = this.bodies[j];
+                            let dx = b2.x - b1.x;
+                            let dy = b2.y - b1.y;
+                            let dist = Math.sqrt(dx * dx + dy * dy);
+                            let minDist = b1.radius + b2.radius;
+
+                            if (dist < minDist) {
+                                let angle = Math.atan2(dy, dx);
+                                let overlap = minDist - dist;
+                                
+                                // Push apart based on mass ratio
+                                let totalMass = b1.mass + b2.mass;
+                                let m1Ratio = b2.mass / totalMass;
+                                let m2Ratio = b1.mass / totalMass;
+
+                                b1.x -= Math.cos(angle) * overlap * m1Ratio;
+                                b1.y -= Math.sin(angle) * overlap * m1Ratio;
+                                b2.x += Math.cos(angle) * overlap * m2Ratio;
+                                b2.y += Math.sin(angle) * overlap * m2Ratio;
+
+                                // Exchange velocity
+                                let nx = Math.cos(angle);
+                                let ny = Math.sin(angle);
+                                let kx = (b1.vx - b2.vx);
+                                let ky = (b1.vy - b2.vy);
+                                let p = 2.0 * (nx * kx + ny * ky) / (b1.mass + b2.mass);
+                                
+                                b1.vx -= p * b2.mass * nx * 0.5;
+                                b1.vy -= p * b2.mass * ny * 0.5;
+                                b2.vx += p * b1.mass * nx * 0.5;
+                                b2.vy += p * b1.mass * ny * 0.5;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // WEBGL ENGINE & RENDER PIPELINE
+        // ==========================================
+        const container = document.getElementById('webgl-container');
+        const HUD_fps = document.getElementById('fps-counter');
+        const HUD_blobs = document.getElementById('blob-counter');
+        const cursorEl = document.getElementById('cursor');
+
+        // Scene Setup
+        const scene = new THREE.Scene();
+        
+        // Use Orthographic camera to map 1:1 with 2D physics
+        const aspect = window.innerWidth / window.innerHeight;
+        const frustumSize = window.innerHeight;
+        const camera = new THREE.OrthographicCamera(
+            frustumSize * aspect / -2, frustumSize * aspect / 2,
+            frustumSize / 2, frustumSize / -2,
+            0.1, 1000
+        );
+        camera.position.z = 100;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // ==========================================
+        // DYNAMIC BACKGROUND GENERATOR (Refraction Target)
+        // ==========================================
+        // Creates a highly performant 2D canvas texture that constantly animates.
+        // This gives the 3D glass material something beautiful to refract.
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = 512;
+        bgCanvas.height = 512;
+        const bgCtx = bgCanvas.getContext('2d', { alpha: false });
+        const bgTexture = new THREE.CanvasTexture(bgCanvas);
+        bgTexture.colorSpace = THREE.SRGBColorSpace;
+        scene.background = bgTexture;
+        scene.environment = bgTexture; // Real-time reflection/refraction
+
+        function updateBackgroundTexture(time) {
+            const w = bgCanvas.width;
+            const h = bgCanvas.height;
+            
+            // Clear
+            bgCtx.fillStyle = '#050505';
+            bgCtx.fillRect(0, 0, w, h);
+            
+            // Draw animated organic gradients
+            const cx1 = w * 0.5 + Math.sin(time * 0.0005) * w * 0.3;
+            const cy1 = h * 0.5 + Math.cos(time * 0.0007) * h * 0.3;
+            const grd1 = bgCtx.createRadialGradient(cx1, cy1, 0, cx1, cy1, w * 0.6);
+            grd1.addColorStop(0, '#ff3366');
+            grd1.addColorStop(1, 'transparent');
+            
+            const cx2 = w * 0.5 + Math.cos(time * 0.0004) * w * 0.4;
+            const cy2 = h * 0.5 + Math.sin(time * 0.0006) * h * 0.4;
+            const grd2 = bgCtx.createRadialGradient(cx2, cy2, 0, cx2, cy2, w * 0.6);
+            grd2.addColorStop(0, '#3366ff');
+            grd2.addColorStop(1, 'transparent');
+
+            const cx3 = w * 0.5 + Math.sin(time * 0.0008) * w * 0.2;
+            const cy3 = h * 0.5 + Math.cos(time * 0.0003) * h * 0.2;
+            const grd3 = bgCtx.createRadialGradient(cx3, cy3, 0, cx3, cy3, w * 0.5);
+            grd3.addColorStop(0, '#66ffcc');
+            grd3.addColorStop(1, 'transparent');
+
+            bgCtx.globalCompositeOperation = 'screen';
+            bgCtx.fillStyle = grd1; bgCtx.fillRect(0, 0, w, h);
+            bgCtx.fillStyle = grd2; bgCtx.fillRect(0, 0, w, h);
+            bgCtx.fillStyle = grd3; bgCtx.fillRect(0, 0, w, h);
+            bgCtx.globalCompositeOperation = 'source-over';
+
+            bgTexture.needsUpdate = true;
+        }
+
+        // ==========================================
+        // GLASS MATERIAL & GEOMETRY
+        // ==========================================
+        const baseRadius = 40;
+        // Icosahedron offers excellent light catching facets while remaining round
+        const geometry = new THREE.IcosahedronGeometry(1, 32); 
+        
+        // Awwwards-tier Glass Material Configuration
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0.1,
+            roughness: 0.05,
+            transmission: 1.0, // This makes it glass
+            ior: 1.6, // Index of Refraction
+            thickness: 50.0,
+            transparent: true,
+            opacity: 1.0,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.1
+        });
+
+        // Lights to create specular highlights on the glass
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const dLight1 = new THREE.DirectionalLight(0xffffff, 2);
+        dLight1.position.set(100, 200, 300);
+        scene.add(dLight1);
+
+        const dLight2 = new THREE.DirectionalLight(0xff3366, 3);
+        dLight2.position.set(-100, -200, 100);
+        scene.add(dLight2);
+
+        // ==========================================
+        // SYSTEM INTEGRATION & LIFECYCLE
+        // ==========================================
+        const physics = new PhysicsWorld(window.innerWidth, window.innerHeight);
+        
+        // Input variables
+        let mouseX = -9999;
+        let mouseY = -9999;
+        let pMouseX = mouseX;
+        let pMouseY = mouseY;
+        let cursorVelocity = { x: 0, y: 0 };
+        const raycaster = new THREE.Raycaster();
+        const mouseVec = new THREE.Vector2();
+
+        function mapScreenToWorld(clientX, clientY) {
+            // Orthographic mapping
+            const x = (clientX / window.innerWidth) * camera.right * 2 - camera.right;
+            const y = -(clientY / window.innerHeight) * camera.top * 2 + camera.top;
+            return { x, y };
+        }
+
+        function createBlob(clientX, clientY) {
+            if (physics.bodies.length >= 35) return; // SOTD Tier Performance Cap
+
+            // Map mouse to world
+            const wPos = mapScreenToWorld(clientX, clientY);
+            
+            // Random variation in size for organic feel
+            const radius = baseRadius * (0.8 + Math.random() * 0.7);
+            const b = physics.addBody(wPos.x, wPos.y, radius);
+            
+            // Link Mesh
+            b.mesh = new THREE.Mesh(geometry, glassMaterial);
+            b.mesh.scale.set(radius, radius, radius);
+            b.mesh.position.set(b.x, b.y, 0);
+            scene.add(b.mesh);
+            
+            HUD_blobs.textContent = `BLOBS: ${physics.bodies.length}`;
+            cursorEl.classList.add('active');
+            setTimeout(() => cursorEl.classList.remove('active'), 200);
+        }
+
+        // ==========================================
+        // EVENT LISTENERS
+        // ==========================================
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            
+            const aspect = width / height;
+            const frustumSize = height;
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+
+            physics.width = camera.right * 2;
+            physics.height = camera.top * 2;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            const wPos = mapScreenToWorld(e.clientX, e.clientY);
+            mouseX = wPos.x;
+            mouseY = wPos.y;
+            
+            cursorEl.style.left = `${e.clientX}px`;
+            cursorEl.style.top = `${e.clientY}px`;
+        });
+
+        window.addEventListener('click', (e) => {
+            createBlob(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const wPos = mapScreenToWorld(touch.clientX, touch.clientY);
+            mouseX = wPos.x;
+            mouseY = wPos.y;
+            
+            cursorEl.style.left = `${touch.clientX}px`;
+            cursorEl.style.top = `${touch.clientY}px`;
+        }, { passive: false });
+
+        window.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            createBlob(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            // Reset velocity decay
+            cursorVelocity = { x: 0, y: 0 };
+        }, { passive: false });
+
+        // ==========================================
+        // PRE-LOAD INITIAL BLOBS
+        // ==========================================
+        for (let i = 0; i < 6; i++) {
+            createBlob(
+                window.innerWidth / 2 + (Math.random() - 0.5) * 300, 
+                window.innerHeight / 2 + (Math.random() - 0.5) * 300
+            );
+        }
+
+        // ==========================================
+        // RENDER PIPELINE & LOOP
+        // ==========================================
+        let lastTime = performance.now();
+        let frameCount = 0;
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+
+            // FPS Counter Logic
+            frameCount++;
+            if (time - lastTime >= 1000) {
+                HUD_fps.textContent = `${frameCount} FPS`;
+                frameCount = 0;
+                lastTime = time;
+            }
+
+            // Cursor Velocity Logic
+            if (mouseX !== -9999) {
+                cursorVelocity.x = mouseX - pMouseX;
+                cursorVelocity.y = mouseY - pMouseY;
+            }
+            pMouseX = mouseX;
+            pMouseY = mouseY;
+
+            // Decay Velocity softly
+            cursorVelocity.x *= 0.95;
+            cursorVelocity.y *= 0.95;
+
+            // Physics Update
+            physics.update(mouseX, mouseY, cursorVelocity);
+
+            // Sync WebGL with Physics
+            physics.bodies.forEach(b => {
+                b.mesh.position.set(b.x, b.y, 0);
+
+                // Synthetic Squash and Stretch based on Velocity (Lusion/MakeReign signature)
+                let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                if (speed > 0.1) {
+                    let angle = Math.atan2(b.vy, b.vx);
+                    // Rotate the sphere to match velocity direction
+                    b.mesh.rotation.z = angle;
+                    
+                    // Squash and stretch scale mapping
+                    let stretch = 1 + speed * 0.05;
+                    let squash = 1 - speed * 0.025;
+                    // Clamp to prevent breakage
+                    stretch = Math.min(stretch, 1.8);
+                    squash = Math.max(squash, 0.4);
+
+                    // Re-apply rotation to scale
+                    b.mesh.scale.set(b.radius * stretch, b.radius * squash, b.radius * squash);
+                } else {
+                    // Normalize gracefully
+                    b.mesh.scale.set(b.radius, b.radius, b.radius);
+                }
+            });
+
+            // Update Dynamic Refraction Texture
+            updateBackgroundTexture(time);
+
+            // Lights Animation
+            dLight2.position.x = Math.sin(time * 0.001) * 300;
+            dLight2.position.y = Math.cos(time * 0.002) * 300;
+
+            renderer.render(scene, camera);
+        }
+
+        // Launch Application
+        setTimeout(() => {
+            container.classList.add('ready');
+            animate(performance.now());
+        }, 300); // Small buffer to ensure WebGL context compiles seamlessly
+    </script>
+</body>
+</html>
