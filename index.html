@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Liquid Glass Playground | SOTD Synthesis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Liquid Glass Playground</title>
     
     <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
 
     <style>
         :root {
-            --bg: #030303;
+            --bg: #000000;
             --fg: #f4f4f5;
             --accent: #ff3366;
         }
@@ -30,8 +30,10 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            cursor: none; /* Custom cursor */
+            cursor: none; 
             -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none; /* Prevents native mobile text selection on rapid tap */
+            user-select: none;
         }
 
         body {
@@ -39,7 +41,8 @@
             color: var(--fg);
             font-family: 'Space Grotesk', sans-serif;
             overflow: hidden;
-            touch-action: none; /* Prevents mobile scrolling */
+            touch-action: none;
+            overscroll-behavior: none;
         }
 
         #webgl-container {
@@ -48,6 +51,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             z-index: 1;
             opacity: 0;
             transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -64,18 +68,23 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             z-index: 10;
             pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: clamp(1.5rem, 4vw, 3rem);
+            padding: max(env(safe-area-inset-top, 2.5rem), 4vw)
+                     max(env(safe-area-inset-right, 2.5rem), 4vw)
+                     max(env(safe-area-inset-bottom, 2.5rem), 4vw)
+                     max(env(safe-area-inset-left, 2.5rem), 4vw);
             mix-blend-mode: difference;
+            will-change: transform; 
         }
 
         header {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end; 
             align-items: flex-start;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -94,26 +103,67 @@
         footer {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem;
         }
 
         h1 {
-            font-size: clamp(2.5rem, 8vw, 6rem);
+            font-size: clamp(3rem, 10vw, 7.5rem);
             font-weight: 700;
-            line-height: 0.9;
-            letter-spacing: -0.03em;
+            line-height: 0.85;
+            letter-spacing: -0.04em;
             max-width: 14ch;
         }
 
         .subtitle {
-            font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+            font-size: clamp(0.95rem, 1.5vw, 1.15rem);
             font-weight: 300;
             opacity: 0.7;
-            max-width: 400px;
-            line-height: 1.4;
+            max-width: 420px;
+            line-height: 1.5;
         }
 
-        /* Custom Cursor */
+        .legal-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+            pointer-events: auto; 
+        }
+
+        .legal-links a {
+            color: var(--fg);
+            text-decoration: none;
+            opacity: 0.4;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            padding: 0.5rem 0; /* Invisible extension of mobile touch target area */
+        }
+
+        /* Liquid Text Ripple Engine */
+        .liquid-text-effect {
+            pointer-events: auto; 
+            filter: url('#water-ripple');
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+            transform-origin: left center;
+            display: block;
+            will-change: transform, filter;
+        }
+
+        /* Hardware-locked hover states preventing iOS 'sticky hover' tap bugs */
+        @media (hover: hover) and (pointer: fine) {
+            .liquid-text-effect:hover {
+                transform: scale(1.01) skewX(-1.5deg);
+                opacity: 0.95;
+            }
+            .legal-links a:hover {
+                opacity: 1;
+            }
+        }
+
+        /* Custom Cursor - Hidden on Touch Devices for Native Feel */
         #cursor {
             position: fixed;
             top: 0;
@@ -127,6 +177,7 @@
             transform: translate(-50%, -50%);
             transition: width 0.2s, height 0.2s, background-color 0.2s;
             mix-blend-mode: difference;
+            will-change: transform, width, height;
         }
 
         #cursor.active {
@@ -135,14 +186,24 @@
             background-color: var(--fg);
         }
 
+        @media (hover: none) and (pointer: coarse) {
+            #cursor {
+                display: none !important;
+            }
+            * {
+                cursor: auto;
+            }
+        }
+
         /* Error Fallback */
         #error-screen {
             display: none;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
             background: var(--bg);
             z-index: 100;
             padding: 2rem;
@@ -159,13 +220,10 @@
 </head>
 <body>
 
-    <!-- WebGL Canvas -->
     <div id="webgl-container"></div>
 
-    <!-- UI Overlay -->
     <div id="ui-layer">
         <header>
-            <div>SOTD Synthesis<br>Vol. 01</div>
             <div class="hud-stats">
                 <span id="fps-counter">60 FPS</span>
                 <span id="blob-counter">BLOBS: 0</span>
@@ -173,15 +231,28 @@
         </header>
 
         <footer>
-            <h1>LIQUID<br>GLASS.</h1>
-            <p class="subtitle">Physics-driven refraction engine. Move cursor to displace. Tap to spawn structural bodies.</p>
+            <h1 class="liquid-text-effect">LIQUID<br>GLASS.</h1>
+            <p class="subtitle liquid-text-effect">Physics-driven refraction engine. Move cursor to displace. Tap to spawn structural bodies.</p>
+            <div class="legal-links">
+                <a href="https://bndrllc.com" target="_blank" rel="noopener noreferrer">bndrllc.com</a>
+                <a href="https://www.dropbox.com/scl/fi/um6xi0vfzj0w03kgxtrq2/privacy.html?rlkey=6ylhioa276mrynqylvxc19u7v&st=iakils4n&raw=" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                <a href="https://www.dropbox.com/scl/fi/kojw24oymxcuku5r2nupj/terms.html?rlkey=zlta95mcdxzqd9qjkbk38alhl&st=t5jhc4pp&raw=" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+            </div>
         </footer>
     </div>
 
-    <!-- Custom Cursor -->
     <div id="cursor"></div>
 
-    <!-- Fallback Screen -->
+    <!-- SVG Filter for Liquid Text Hover -->
+    <svg style="width:0; height:0; position:absolute; z-index:-1; pointer-events:none;" aria-hidden="true">
+        <filter id="water-ripple" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="2" result="noise">
+                <animate attributeName="baseFrequency" values="0.015 0.02; 0.025 0.04; 0.015 0.02" keyTimes="0; 0.5; 1" dur="4s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap id="displacement-map" in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+
     <div id="error-screen">
         <div class="error-content">
             <h2>SYSTEM FAULT</h2>
@@ -193,8 +264,12 @@
         import * as THREE from 'three';
 
         // ==========================================
-        // SYSTEM VERIFICATION & FALLBACK
+        // SYSTEM CAPABILITY & ARCHITECTURE
         // ==========================================
+        const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        const MAX_BLOBS = isMobile ? 18 : 35; 
+        const OPTIMIZED_DPR = isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2);
+
         function checkWebGL() {
             try {
                 const canvas = document.createElement('canvas');
@@ -210,7 +285,7 @@
         }
 
         // ==========================================
-        // CUSTOM PHYSICS ENGINE (2D Verlet mapped to 3D)
+        // CUSTOM PHYSICS ENGINE
         // ==========================================
         class PhysicsWorld {
             constructor(width, height) {
@@ -218,7 +293,7 @@
                 this.height = height;
                 this.bodies = [];
                 this.friction = 0.96;
-                this.mouseInteractionRadius = 150;
+                this.mouseInteractionRadius = isMobile ? 180 : 150; 
                 this.mouseForce = 0.5;
             }
 
@@ -229,27 +304,23 @@
                     vy: (Math.random() - 0.5) * 10,
                     radius: radius,
                     mass: radius * 0.5,
-                    mesh: null // Mapped later
+                    mesh: null 
                 };
                 this.bodies.push(body);
                 return body;
             }
 
             update(mouseX, mouseY, cursorVelocity) {
-                // Iterations for stability
                 const iterations = 3;
                 
                 for (let k = 0; k < iterations; k++) {
-                    // Update positions & Apply constraints
                     for (let i = 0; i < this.bodies.length; i++) {
                         let b = this.bodies[i];
                         
                         if (k === 0) {
-                            // Apply friction
                             b.vx *= this.friction;
                             b.vy *= this.friction;
 
-                            // Apply mouse interaction force
                             let dx = mouseX - b.x;
                             let dy = mouseY - b.y;
                             let dist = Math.sqrt(dx * dx + dy * dy);
@@ -259,12 +330,10 @@
                                 b.vy += (cursorVelocity.y * force * this.mouseForce);
                             }
 
-                            // Update position
                             b.x += b.vx;
                             b.y += b.vy;
                         }
 
-                        // Boundary constraints (bounce)
                         const boundsX = this.width / 2;
                         const boundsY = this.height / 2;
 
@@ -274,7 +343,6 @@
                         if (b.y > boundsY - b.radius) { b.y = boundsY - b.radius; b.vy *= -0.8; }
                     }
 
-                    // Solve collisions
                     for (let i = 0; i < this.bodies.length; i++) {
                         for (let j = i + 1; j < this.bodies.length; j++) {
                             let b1 = this.bodies[i];
@@ -288,7 +356,6 @@
                                 let angle = Math.atan2(dy, dx);
                                 let overlap = minDist - dist;
                                 
-                                // Push apart based on mass ratio
                                 let totalMass = b1.mass + b2.mass;
                                 let m1Ratio = b2.mass / totalMass;
                                 let m2Ratio = b1.mass / totalMass;
@@ -298,7 +365,6 @@
                                 b2.x += Math.cos(angle) * overlap * m2Ratio;
                                 b2.y += Math.sin(angle) * overlap * m2Ratio;
 
-                                // Exchange velocity
                                 let nx = Math.cos(angle);
                                 let ny = Math.sin(angle);
                                 let kx = (b1.vx - b2.vx);
@@ -317,19 +383,17 @@
         }
 
         // ==========================================
-        // WEBGL ENGINE & RENDER PIPELINE
+        // WEBGL ENGINE
         // ==========================================
         const container = document.getElementById('webgl-container');
         const HUD_fps = document.getElementById('fps-counter');
         const HUD_blobs = document.getElementById('blob-counter');
         const cursorEl = document.getElementById('cursor');
 
-        // Scene Setup
         const scene = new THREE.Scene();
         
-        // Use Orthographic camera to map 1:1 with 2D physics
-        const aspect = window.innerWidth / window.innerHeight;
-        const frustumSize = window.innerHeight;
+        let aspect = window.innerWidth / window.innerHeight;
+        let frustumSize = window.innerHeight;
         const camera = new THREE.OrthographicCamera(
             frustumSize * aspect / -2, frustumSize * aspect / 2,
             frustumSize / 2, frustumSize / -2,
@@ -338,49 +402,47 @@
         camera.position.z = 100;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+        renderer.setPixelRatio(OPTIMIZED_DPR); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(renderer.domElement);
 
         // ==========================================
-        // DYNAMIC BACKGROUND GENERATOR (Refraction Target)
+        // OPTIMIZED DYNAMIC BACKGROUND GENERATOR
         // ==========================================
-        // Creates a highly performant 2D canvas texture that constantly animates.
-        // This gives the 3D glass material something beautiful to refract.
         const bgCanvas = document.createElement('canvas');
-        bgCanvas.width = 512;
-        bgCanvas.height = 512;
+        const texSize = isMobile ? 256 : 512; 
+        bgCanvas.width = texSize;
+        bgCanvas.height = texSize;
         const bgCtx = bgCanvas.getContext('2d', { alpha: false });
         const bgTexture = new THREE.CanvasTexture(bgCanvas);
         bgTexture.colorSpace = THREE.SRGBColorSpace;
+        bgTexture.minFilter = THREE.LinearFilter; 
         scene.background = bgTexture;
-        scene.environment = bgTexture; // Real-time reflection/refraction
+        scene.environment = bgTexture; 
 
         function updateBackgroundTexture(time) {
             const w = bgCanvas.width;
             const h = bgCanvas.height;
             
-            // Clear
-            bgCtx.fillStyle = '#050505';
+            bgCtx.fillStyle = '#000000'; 
             bgCtx.fillRect(0, 0, w, h);
             
-            // Draw animated organic gradients
             const cx1 = w * 0.5 + Math.sin(time * 0.0005) * w * 0.3;
             const cy1 = h * 0.5 + Math.cos(time * 0.0007) * h * 0.3;
             const grd1 = bgCtx.createRadialGradient(cx1, cy1, 0, cx1, cy1, w * 0.6);
-            grd1.addColorStop(0, '#ff3366');
+            grd1.addColorStop(0, '#ff1a53');
             grd1.addColorStop(1, 'transparent');
             
             const cx2 = w * 0.5 + Math.cos(time * 0.0004) * w * 0.4;
             const cy2 = h * 0.5 + Math.sin(time * 0.0006) * h * 0.4;
             const grd2 = bgCtx.createRadialGradient(cx2, cy2, 0, cx2, cy2, w * 0.6);
-            grd2.addColorStop(0, '#3366ff');
+            grd2.addColorStop(0, '#1a53ff');
             grd2.addColorStop(1, 'transparent');
 
             const cx3 = w * 0.5 + Math.sin(time * 0.0008) * w * 0.2;
             const cy3 = h * 0.5 + Math.cos(time * 0.0003) * h * 0.2;
             const grd3 = bgCtx.createRadialGradient(cx3, cy3, 0, cx3, cy3, w * 0.5);
-            grd3.addColorStop(0, '#66ffcc');
+            grd3.addColorStop(0, '#00ffcc');
             grd3.addColorStop(1, 'transparent');
 
             bgCtx.globalCompositeOperation = 'screen';
@@ -393,90 +455,101 @@
         }
 
         // ==========================================
-        // GLASS MATERIAL & GEOMETRY
+        // HIGH-FIDELITY GLASS MATERIAL & GEOMETRY
         // ==========================================
         const baseRadius = 40;
-        // Icosahedron offers excellent light catching facets while remaining round
         const geometry = new THREE.IcosahedronGeometry(1, 32); 
         
-        // Awwwards-tier Glass Material Configuration
         const glassMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
-            metalness: 0.1,
-            roughness: 0.05,
-            transmission: 1.0, // This makes it glass
-            ior: 1.6, // Index of Refraction
-            thickness: 50.0,
+            metalness: 0.05,         
+            roughness: 0.02,         
+            transmission: 1.0, 
+            ior: 1.52,               
+            thickness: 60.0,         
             transparent: true,
             opacity: 1.0,
             clearcoat: 1.0,
-            clearcoatRoughness: 0.1
+            clearcoatRoughness: 0.02 
         });
 
-        // Lights to create specular highlights on the glass
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
 
-        const dLight1 = new THREE.DirectionalLight(0xffffff, 2);
+        const dLight1 = new THREE.DirectionalLight(0xffffff, 3.5);
         dLight1.position.set(100, 200, 300);
         scene.add(dLight1);
 
-        const dLight2 = new THREE.DirectionalLight(0xff3366, 3);
+        const dLight2 = new THREE.DirectionalLight(0xff1a53, 4);
         dLight2.position.set(-100, -200, 100);
         scene.add(dLight2);
+        
+        const dLight3 = new THREE.DirectionalLight(0x1a53ff, 2.5); 
+        dLight3.position.set(200, 0, -200);
+        scene.add(dLight3);
 
         // ==========================================
-        // SYSTEM INTEGRATION & LIFECYCLE
+        // LIQUID TEXT HOVER ENGINE
+        // ==========================================
+        const liquidTexts = document.querySelectorAll('.liquid-text-effect');
+        const displacementMap = document.getElementById('displacement-map');
+        let rippleScale = 0;
+        let targetRippleScale = 0;
+
+        liquidTexts.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                if (!isMobile) targetRippleScale = 12;
+            });
+            el.addEventListener('mouseleave', () => targetRippleScale = 0);
+        });
+
+        // ==========================================
+        // SYSTEM INTEGRATION
         // ==========================================
         const physics = new PhysicsWorld(window.innerWidth, window.innerHeight);
         
-        // Input variables
         let mouseX = -9999;
         let mouseY = -9999;
         let pMouseX = mouseX;
         let pMouseY = mouseY;
         let cursorVelocity = { x: 0, y: 0 };
-        const raycaster = new THREE.Raycaster();
-        const mouseVec = new THREE.Vector2();
 
         function mapScreenToWorld(clientX, clientY) {
-            // Orthographic mapping
             const x = (clientX / window.innerWidth) * camera.right * 2 - camera.right;
             const y = -(clientY / window.innerHeight) * camera.top * 2 + camera.top;
             return { x, y };
         }
 
         function createBlob(clientX, clientY) {
-            if (physics.bodies.length >= 35) return; // SOTD Tier Performance Cap
+            if (physics.bodies.length >= MAX_BLOBS) return; 
 
-            // Map mouse to world
             const wPos = mapScreenToWorld(clientX, clientY);
-            
-            // Random variation in size for organic feel
             const radius = baseRadius * (0.8 + Math.random() * 0.7);
             const b = physics.addBody(wPos.x, wPos.y, radius);
             
-            // Link Mesh
             b.mesh = new THREE.Mesh(geometry, glassMaterial);
             b.mesh.scale.set(radius, radius, radius);
             b.mesh.position.set(b.x, b.y, 0);
             scene.add(b.mesh);
             
             HUD_blobs.textContent = `BLOBS: ${physics.bodies.length}`;
-            cursorEl.classList.add('active');
-            setTimeout(() => cursorEl.classList.remove('active'), 200);
+            
+            if (!isMobile) {
+                cursorEl.classList.add('active');
+                setTimeout(() => cursorEl.classList.remove('active'), 200);
+            }
         }
 
         // ==========================================
-        // EVENT LISTENERS
+        // INPUT ROUTING & TELEMETRY
         // ==========================================
         window.addEventListener('resize', () => {
             const width = window.innerWidth;
             const height = window.innerHeight;
             renderer.setSize(width, height);
             
-            const aspect = width / height;
-            const frustumSize = height;
+            aspect = width / height;
+            frustumSize = height;
             camera.left = -frustumSize * aspect / 2;
             camera.right = frustumSize * aspect / 2;
             camera.top = frustumSize / 2;
@@ -488,6 +561,7 @@
         });
 
         window.addEventListener('mousemove', (e) => {
+            if (isMobile) return; 
             const wPos = mapScreenToWorld(e.clientX, e.clientY);
             mouseX = wPos.x;
             mouseY = wPos.y;
@@ -497,6 +571,8 @@
         });
 
         window.addEventListener('click', (e) => {
+            if (e.target.tagName.toLowerCase() === 'a') return;
+            if (isMobile) return; 
             createBlob(e.clientX, e.clientY);
         });
 
@@ -505,33 +581,44 @@
             const wPos = mapScreenToWorld(touch.clientX, touch.clientY);
             mouseX = wPos.x;
             mouseY = wPos.y;
-            
-            cursorEl.style.left = `${touch.clientX}px`;
-            cursorEl.style.top = `${touch.clientY}px`;
         }, { passive: false });
 
         window.addEventListener('touchstart', (e) => {
+            if (e.target.tagName.toLowerCase() === 'a') return;
             const touch = e.touches[0];
+            const wPos = mapScreenToWorld(touch.clientX, touch.clientY);
+            
+            mouseX = wPos.x;
+            mouseY = wPos.y;
+            pMouseX = wPos.x;
+            pMouseY = wPos.y;
+            cursorVelocity.x = 0;
+            cursorVelocity.y = 0;
+
             createBlob(touch.clientX, touch.clientY);
         }, { passive: false });
 
         window.addEventListener('touchend', () => {
-            // Reset velocity decay
             cursorVelocity = { x: 0, y: 0 };
+            mouseX = -9999;
+            mouseY = -9999;
+            pMouseX = mouseX;
+            pMouseY = mouseY;
         }, { passive: false });
 
         // ==========================================
-        // PRE-LOAD INITIAL BLOBS
+        // INITIALIZATION
         // ==========================================
-        for (let i = 0; i < 6; i++) {
+        const initialBlobs = isMobile ? 4 : 6;
+        for (let i = 0; i < initialBlobs; i++) {
             createBlob(
-                window.innerWidth / 2 + (Math.random() - 0.5) * 300, 
-                window.innerHeight / 2 + (Math.random() - 0.5) * 300
+                window.innerWidth / 2 + (Math.random() - 0.5) * (window.innerWidth * 0.5), 
+                window.innerHeight / 2 + (Math.random() - 0.5) * (window.innerHeight * 0.5)
             );
         }
 
         // ==========================================
-        // RENDER PIPELINE & LOOP
+        // RENDER PIPELINE
         // ==========================================
         let lastTime = performance.now();
         let frameCount = 0;
@@ -539,7 +626,6 @@
         function animate(time) {
             requestAnimationFrame(animate);
 
-            // FPS Counter Logic
             frameCount++;
             if (time - lastTime >= 1000) {
                 HUD_fps.textContent = `${frameCount} FPS`;
@@ -547,62 +633,58 @@
                 lastTime = time;
             }
 
-            // Cursor Velocity Logic
-            if (mouseX !== -9999) {
+            if (mouseX !== -9999 && pMouseX !== -9999) {
                 cursorVelocity.x = mouseX - pMouseX;
                 cursorVelocity.y = mouseY - pMouseY;
             }
             pMouseX = mouseX;
             pMouseY = mouseY;
 
-            // Decay Velocity softly
             cursorVelocity.x *= 0.95;
             cursorVelocity.y *= 0.95;
 
-            // Physics Update
+            // Update Liquid Text Ripple Interpolation
+            rippleScale += (targetRippleScale - rippleScale) * 0.08;
+            if (Math.abs(targetRippleScale - rippleScale) > 0.01) {
+                displacementMap.setAttribute('scale', rippleScale.toFixed(2));
+            } else if (rippleScale !== targetRippleScale) {
+                rippleScale = targetRippleScale;
+                displacementMap.setAttribute('scale', rippleScale);
+            }
+
             physics.update(mouseX, mouseY, cursorVelocity);
 
-            // Sync WebGL with Physics
             physics.bodies.forEach(b => {
                 b.mesh.position.set(b.x, b.y, 0);
 
-                // Synthetic Squash and Stretch based on Velocity (Lusion/MakeReign signature)
                 let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
                 if (speed > 0.1) {
                     let angle = Math.atan2(b.vy, b.vx);
-                    // Rotate the sphere to match velocity direction
                     b.mesh.rotation.z = angle;
                     
-                    // Squash and stretch scale mapping
                     let stretch = 1 + speed * 0.05;
                     let squash = 1 - speed * 0.025;
-                    // Clamp to prevent breakage
                     stretch = Math.min(stretch, 1.8);
                     squash = Math.max(squash, 0.4);
 
-                    // Re-apply rotation to scale
                     b.mesh.scale.set(b.radius * stretch, b.radius * squash, b.radius * squash);
                 } else {
-                    // Normalize gracefully
                     b.mesh.scale.set(b.radius, b.radius, b.radius);
                 }
             });
 
-            // Update Dynamic Refraction Texture
             updateBackgroundTexture(time);
 
-            // Lights Animation
             dLight2.position.x = Math.sin(time * 0.001) * 300;
             dLight2.position.y = Math.cos(time * 0.002) * 300;
 
             renderer.render(scene, camera);
         }
 
-        // Launch Application
         setTimeout(() => {
             container.classList.add('ready');
             animate(performance.now());
-        }, 300); // Small buffer to ensure WebGL context compiles seamlessly
+        }, 300); 
     </script>
 </body>
 </html>
