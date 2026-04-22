@@ -21,9 +21,13 @@
 
     <style>
         :root {
-            --bg: #000000;
-            --fg: #f4f4f5;
-            --accent: #ff3366;
+            --bone: #E8E4DF;
+            --void: #020202;
+            --charcoal: #0A0A0B;
+            --plasma: #CCFF00;
+            --magenta: #ff0055;
+            --creamsicle: #FF9845;
+            --lavender: #B87CFF;
         }
 
         * {
@@ -32,13 +36,13 @@
             box-sizing: border-box;
             cursor: none; 
             -webkit-tap-highlight-color: transparent;
-            -webkit-user-select: none; /* Prevents native mobile text selection on rapid tap */
+            -webkit-user-select: none;
             user-select: none;
         }
 
         body {
-            background-color: var(--bg);
-            color: var(--fg);
+            background-color: var(--bone);
+            color: var(--charcoal); /* explicitly mapped to charcoal for solid foreground contrast */
             font-family: 'Space Grotesk', sans-serif;
             overflow: hidden;
             touch-action: none;
@@ -78,7 +82,7 @@
                      max(env(safe-area-inset-right, 2.5rem), 4vw)
                      max(env(safe-area-inset-bottom, 2.5rem), 4vw)
                      max(env(safe-area-inset-left, 2.5rem), 4vw);
-            mix-blend-mode: difference;
+            /* mix-blend-mode removed to prevent the weird green/color-clashing inversion */
             will-change: transform; 
         }
 
@@ -116,8 +120,8 @@
 
         .subtitle {
             font-size: clamp(0.95rem, 1.5vw, 1.15rem);
-            font-weight: 300;
-            opacity: 0.7;
+            font-weight: 500; /* Bumped slightly for legibility */
+            opacity: 0.8;
             max-width: 420px;
             line-height: 1.5;
         }
@@ -131,18 +135,18 @@
         }
 
         .legal-links a {
-            color: var(--fg);
+            color: var(--charcoal);
             text-decoration: none;
-            opacity: 0.4;
+            opacity: 0.6;
             font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
-            padding: 0.5rem 0; /* Invisible extension of mobile touch target area */
+            padding: 0.5rem 0;
         }
 
-        /* Liquid Text Ripple Engine */
+        /* Liquid Text Ripple Engine - Intact as requested */
         .liquid-text-effect {
             pointer-events: auto; 
             filter: url('#water-ripple');
@@ -152,38 +156,37 @@
             will-change: transform, filter;
         }
 
-        /* Hardware-locked hover states preventing iOS 'sticky hover' tap bugs */
+        /* Hardware-locked hover states */
         @media (hover: hover) and (pointer: fine) {
             .liquid-text-effect:hover {
                 transform: scale(1.01) skewX(-1.5deg);
-                opacity: 0.95;
             }
             .legal-links a:hover {
                 opacity: 1;
             }
         }
 
-        /* Custom Cursor - Hidden on Touch Devices for Native Feel */
+        /* Custom Cursor */
         #cursor {
             position: fixed;
             top: 0;
             left: 0;
             width: 20px;
             height: 20px;
-            border: 1.5px solid var(--fg);
+            border: 1.5px solid var(--charcoal); /* charcoal mapping */
             border-radius: 50%;
             pointer-events: none;
             z-index: 9999;
             transform: translate(-50%, -50%);
             transition: width 0.2s, height 0.2s, background-color 0.2s;
-            mix-blend-mode: difference;
             will-change: transform, width, height;
+            /* blend-mode removed to preserve color fidelity */
         }
 
         #cursor.active {
             width: 40px;
             height: 40px;
-            background-color: var(--fg);
+            background-color: var(--charcoal);
         }
 
         @media (hover: none) and (pointer: coarse) {
@@ -204,7 +207,7 @@
             width: 100vw;
             height: 100vh;
             height: 100dvh;
-            background: var(--bg);
+            background: var(--bone);
             z-index: 100;
             padding: 2rem;
             align-items: center;
@@ -213,8 +216,9 @@
         }
 
         .error-content {
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid var(--charcoal);
             padding: 3rem;
+            color: var(--charcoal);
         }
     </style>
 </head>
@@ -424,32 +428,44 @@
             const w = bgCanvas.width;
             const h = bgCanvas.height;
             
-            bgCtx.fillStyle = '#000000'; 
+            // Base layer: --bone for the persistent bright environment
+            bgCtx.globalAlpha = 1.0;
+            bgCtx.globalCompositeOperation = 'source-over';
+            bgCtx.fillStyle = '#E8E4DF'; 
             bgCtx.fillRect(0, 0, w, h);
             
             const cx1 = w * 0.5 + Math.sin(time * 0.0005) * w * 0.3;
             const cy1 = h * 0.5 + Math.cos(time * 0.0007) * h * 0.3;
-            const grd1 = bgCtx.createRadialGradient(cx1, cy1, 0, cx1, cy1, w * 0.6);
-            grd1.addColorStop(0, '#ff1a53');
+            const grd1 = bgCtx.createRadialGradient(cx1, cy1, 0, cx1, cy1, w * 0.75); // Expanded radius for softer falloff
+            // Injected dynamic glow: --creamsicle
+            grd1.addColorStop(0, '#FF9845');
             grd1.addColorStop(1, 'transparent');
             
             const cx2 = w * 0.5 + Math.cos(time * 0.0004) * w * 0.4;
             const cy2 = h * 0.5 + Math.sin(time * 0.0006) * h * 0.4;
-            const grd2 = bgCtx.createRadialGradient(cx2, cy2, 0, cx2, cy2, w * 0.6);
-            grd2.addColorStop(0, '#1a53ff');
+            const grd2 = bgCtx.createRadialGradient(cx2, cy2, 0, cx2, cy2, w * 0.75); // Expanded radius for softer falloff
+            // Injected dynamic glow: --lavender
+            grd2.addColorStop(0, '#B87CFF');
             grd2.addColorStop(1, 'transparent');
 
             const cx3 = w * 0.5 + Math.sin(time * 0.0008) * w * 0.2;
             const cy3 = h * 0.5 + Math.cos(time * 0.0003) * h * 0.2;
             const grd3 = bgCtx.createRadialGradient(cx3, cy3, 0, cx3, cy3, w * 0.5);
-            grd3.addColorStop(0, '#00ffcc');
+            // Filler structural glow: --bone to amplify total brightness organically
+            grd3.addColorStop(0, '#E8E4DF');
             grd3.addColorStop(1, 'transparent');
 
-            bgCtx.globalCompositeOperation = 'screen';
+            // Shifted away from 'screen' math to precise alpha-layering.
+            // Screen math on a near-white background mathematically erases color. Alpha layering preserves the pigment.
+            bgCtx.globalAlpha = 0.35; 
             bgCtx.fillStyle = grd1; bgCtx.fillRect(0, 0, w, h);
             bgCtx.fillStyle = grd2; bgCtx.fillRect(0, 0, w, h);
+            
+            bgCtx.globalAlpha = 0.6;
             bgCtx.fillStyle = grd3; bgCtx.fillRect(0, 0, w, h);
-            bgCtx.globalCompositeOperation = 'source-over';
+            
+            // Re-lock alpha to prevent bleed into next frame
+            bgCtx.globalAlpha = 1.0;
 
             bgTexture.needsUpdate = true;
         }
@@ -460,31 +476,37 @@
         const baseRadius = 40;
         const geometry = new THREE.IcosahedronGeometry(1, 32); 
         
+        // Material Base tied to --bone hex
         const glassMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
+            color: 0xE8E4DF,
+            emissive: 0xE8E4DF,
+            emissiveIntensity: 0.4, 
             metalness: 0.05,         
             roughness: 0.02,         
             transmission: 1.0, 
             ior: 1.52,               
-            thickness: 60.0,         
+            thickness: 80.0,         
             transparent: true,
             opacity: 1.0,
             clearcoat: 1.0,
             clearcoatRoughness: 0.02 
         });
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        // Illumination
+        const ambientLight = new THREE.AmbientLight(0xE8E4DF, 2.0);
         scene.add(ambientLight);
 
-        const dLight1 = new THREE.DirectionalLight(0xffffff, 3.5);
+        const dLight1 = new THREE.DirectionalLight(0xE8E4DF, 6.0);
         dLight1.position.set(100, 200, 300);
         scene.add(dLight1);
 
-        const dLight2 = new THREE.DirectionalLight(0xff1a53, 4);
+        // Targeted Creamsicle Orange Glow
+        const dLight2 = new THREE.DirectionalLight(0xFF9845, 8.0);
         dLight2.position.set(-100, -200, 100);
         scene.add(dLight2);
         
-        const dLight3 = new THREE.DirectionalLight(0x1a53ff, 2.5); 
+        // Targeted Light Purple Glow
+        const dLight3 = new THREE.DirectionalLight(0xB87CFF, 7.0); 
         dLight3.position.set(200, 0, -200);
         scene.add(dLight3);
 
