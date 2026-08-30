@@ -1,16 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Liquid Glass Playground</title>
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"> 
+    <meta name="description" content="Sedona Aura - Premium artisan wellness and serenity born from the red rocks.">
+    <meta name="theme-color" content="#F4F1EA">
     
-    <!-- Typography -->
+    <!-- Open Graph & Twitter Card SEO Injections -->
+    <meta property="og:title" content="Sedona Aura | Immersive Wellness">
+    <meta property="og:description" content="Premium artisan wellness and serenity born from the red rocks.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Sedona Aura | Immersive Wellness">
+    <meta name="twitter:description" content="Premium artisan wellness and serenity born from the red rocks.">
+
+    <title>Sedona Aura | Immersive Wellness</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
-    
-    <!-- Three.js Import Map -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+
     <script type="importmap">
         {
             "imports": {
@@ -21,9 +31,12 @@
 
     <style>
         :root {
-            --bg: #000000;
-            --fg: #f4f4f5;
-            --accent: #ff3366;
+            --bg: #F4F1EA;
+            --fg: #2C3531;
+            --accent: #9DB4A5;
+            --glass-bg: rgba(244, 241, 234, 0.4);
+            --glass-border: rgba(44, 53, 49, 0.08);
+            --ui-padding: max(2rem, 4vw);
         }
 
         * {
@@ -32,7 +45,7 @@
             box-sizing: border-box;
             cursor: none; 
             -webkit-tap-highlight-color: transparent;
-            -webkit-user-select: none; /* Prevents native mobile text selection on rapid tap */
+            -webkit-user-select: none;
             user-select: none;
         }
 
@@ -43,6 +56,7 @@
             overflow: hidden;
             touch-action: none;
             overscroll-behavior: none;
+            -webkit-font-smoothing: antialiased;
         }
 
         #webgl-container {
@@ -55,13 +69,13 @@
             z-index: 1;
             opacity: 0;
             transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            background-color: var(--bg);
         }
 
         #webgl-container.ready {
             opacity: 1;
         }
 
-        /* Brutalist / Minimalist UI Overlay */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -74,36 +88,29 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: max(env(safe-area-inset-top, 2.5rem), 4vw)
-                     max(env(safe-area-inset-right, 2.5rem), 4vw)
-                     max(env(safe-area-inset-bottom, 2.5rem), 4vw)
-                     max(env(safe-area-inset-left, 2.5rem), 4vw);
-            mix-blend-mode: difference;
             will-change: transform; 
         }
 
         header {
             display: flex;
-            justify-content: flex-end; 
+            justify-content: space-between;
             align-items: flex-start;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-size: 0.85rem;
             font-weight: 500;
-        }
-
-        .hud-stats {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            font-variant-numeric: tabular-nums;
-            opacity: 0.8;
+            padding: var(--ui-padding);
+            padding-top: max(env(safe-area-inset-top, 2rem), var(--ui-padding));
+            background: linear-gradient(to bottom, var(--glass-bg), transparent);
         }
 
         footer {
             display: flex;
             flex-direction: column;
             gap: 1.25rem;
+            padding: var(--ui-padding);
+            padding-bottom: max(env(safe-area-inset-bottom, 2.5rem), var(--ui-padding));
+            background: linear-gradient(to top, var(--glass-bg), transparent);
         }
 
         h1 {
@@ -112,12 +119,13 @@
             line-height: 0.85;
             letter-spacing: -0.04em;
             max-width: 14ch;
+            color: var(--fg);
         }
 
         .subtitle {
             font-size: clamp(0.95rem, 1.5vw, 1.15rem);
-            font-weight: 300;
-            opacity: 0.7;
+            font-weight: 400;
+            opacity: 0.8;
             max-width: 420px;
             line-height: 1.5;
         }
@@ -133,16 +141,16 @@
         .legal-links a {
             color: var(--fg);
             text-decoration: none;
-            opacity: 0.4;
+            opacity: 0.5;
             font-size: 0.65rem;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
-            padding: 0.5rem 0; /* Invisible extension of mobile touch target area */
+            padding: 0.5rem 0; 
         }
 
-        /* Liquid Text Ripple Engine */
         .liquid-text-effect {
             pointer-events: auto; 
             filter: url('#water-ripple');
@@ -152,7 +160,6 @@
             will-change: transform, filter;
         }
 
-        /* Hardware-locked hover states preventing iOS 'sticky hover' tap bugs */
         @media (hover: hover) and (pointer: fine) {
             .liquid-text-effect:hover {
                 transform: scale(1.01) skewX(-1.5deg);
@@ -163,27 +170,26 @@
             }
         }
 
-        /* Custom Cursor - Hidden on Touch Devices for Native Feel */
         #cursor {
             position: fixed;
             top: 0;
             left: 0;
             width: 20px;
             height: 20px;
-            border: 1.5px solid var(--fg);
+            border: 1.5px solid var(--accent);
             border-radius: 50%;
             pointer-events: none;
             z-index: 9999;
             transform: translate(-50%, -50%);
             transition: width 0.2s, height 0.2s, background-color 0.2s;
-            mix-blend-mode: difference;
             will-change: transform, width, height;
         }
 
         #cursor.active {
             width: 40px;
             height: 40px;
-            background-color: var(--fg);
+            background-color: var(--accent);
+            opacity: 0.2;
         }
 
         @media (hover: none) and (pointer: coarse) {
@@ -195,7 +201,6 @@
             }
         }
 
-        /* Error Fallback */
         #error-screen {
             display: none;
             position: absolute;
@@ -213,478 +218,488 @@
         }
 
         .error-content {
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid var(--glass-border);
             padding: 3rem;
+            background: var(--glass-bg);
+            border-radius: 12px;
+        }
+
+        #interaction-trigger {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--fg);
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 0.75rem 1.5rem;
+            border-radius: 99px;
+            pointer-events: none;
+            z-index: 20;
+            animation: pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+            transition: opacity 0.5s ease;
+            font-weight: 500;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .trigger-hidden {
+            opacity: 0 !important;
         }
     </style>
-</head>
+</head> 
 <body>
 
-    <div id="webgl-container"></div>
+<div id="webgl-container"></div>
 
-    <div id="ui-layer">
-        <header>
-            <div class="hud-stats">
-                <span id="fps-counter">60 FPS</span>
-                <span id="blob-counter">BLOBS: 0</span>
-            </div>
-        </header>
-
-        <footer>
-            <h1 class="liquid-text-effect">LIQUID<br>GLASS.</h1>
-            <p class="subtitle liquid-text-effect">Imagine something like this as your website background, but tailored to your colors, what you sell, etc</p>
-            <div class="legal-links">
-                <a href="https://bndrllc.com" target="_blank" rel="noopener noreferrer">bndrllc.com</a>
-                <a href="https://www.dropbox.com/scl/fi/um6xi0vfzj0w03kgxtrq2/privacy.html?rlkey=6ylhioa276mrynqylvxc19u7v&st=iakils4n&raw=" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
-                <a href="https://www.dropbox.com/scl/fi/kojw24oymxcuku5r2nupj/terms.html?rlkey=zlta95mcdxzqd9qjkbk38alhl&st=t5jhc4pp&raw=" target="_blank" rel="noopener noreferrer">Terms of Service</a>
-            </div>
-        </footer>
-    </div>
-
-    <div id="cursor"></div>
-
-    <!-- SVG Filter for Liquid Text Hover -->
-    <svg style="width:0; height:0; position:absolute; z-index:-1; pointer-events:none;" aria-hidden="true">
-        <filter id="water-ripple" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="2" result="noise">
-                <animate attributeName="baseFrequency" values="0.015 0.02; 0.025 0.04; 0.015 0.02" keyTimes="0; 0.5; 1" dur="4s" repeatCount="indefinite" />
-            </feTurbulence>
-            <feDisplacementMap id="displacement-map" in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-    </svg>
-
-    <div id="error-screen">
-        <div class="error-content">
-            <h2>SYSTEM FAULT</h2>
-            <p style="margin-top: 1rem; opacity: 0.7;">WebGL environment failed to initialize. Device unsupported.</p>
+<main id="ui-layer">
+    <header aria-label="Site Header">
+        <div class="brand pointer-events-auto" style="pointer-events: auto; font-weight: 700; color: var(--accent);">
+            SEDONA AURA
         </div>
+    </header>
+
+    <div id="interaction-trigger" aria-live="polite" role="status">click to spawn marbles</div>
+
+    <footer aria-label="Site Footer">
+        <section aria-labelledby="brand-heading">
+            <h1 id="brand-heading" class="liquid-text-effect">SEDONA<br>AURA.</h1>
+            <p class="subtitle liquid-text-effect">Premium artisan wellness and serenity born from the red rocks.</p>
+        </section>
+        <nav class="legal-links" aria-label="Footer Navigation">
+            <a href="/" target="_self">Shop Collection</a>
+            <a href="/" target="_self">Privacy Policy</a>
+            <a href="/" target="_self">Terms of Service</a>
+        </nav>
+    </footer>
+</main>
+
+<div id="cursor" aria-hidden="true"></div>
+
+<svg style="width:0; height:0; position:absolute; z-index:-1; pointer-events:none;" aria-hidden="true">
+    <filter id="water-ripple" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="2" result="noise">
+            <animate attributeName="baseFrequency" values="0.015 0.02; 0.025 0.04; 0.015 0.02" keyTimes="0; 0.5; 1" dur="4s" repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap id="displacement-map" in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+</svg>
+
+<div id="error-screen" role="alert">
+    <div class="error-content">
+        <h2>SYSTEM FAULT</h2>
+        <p style="margin-top: 1rem; opacity: 0.7;">WebGL environment failed to initialize. Device unsupported.</p>
     </div>
+</div>
 
-    <script type="module">
-        import * as THREE from 'three';
+<script type="module">
+    import * as THREE from 'three';
 
-        // ==========================================
-        // SYSTEM CAPABILITY & ARCHITECTURE
-        // ==========================================
-        const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-        const MAX_BLOBS = isMobile ? 18 : 35; 
-        const OPTIMIZED_DPR = isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2);
+    const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const MAX_BLOBS = isMobile ? 18 : 35; 
+    const OPTIMIZED_DPR = isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2);
 
-        function checkWebGL() {
-            try {
-                const canvas = document.createElement('canvas');
-                return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
-            } catch (e) {
-                return false;
-            }
+    function checkWebGL() {
+        try {
+            const canvas = document.createElement('canvas');
+            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+        } catch (e) {
+            return false;
+        }
+    }
+
+    if (!checkWebGL()) {
+        document.getElementById('error-screen').style.display = 'flex';
+        throw new Error('WebGL not supported');
+    }
+
+    class PhysicsWorld {
+        constructor(width, height) {
+            this.width = width;
+            this.height = height;
+            this.bodies = [];
+            this.friction = 0.96;
+            this.mouseInteractionRadius = isMobile ? 180 : 150; 
+            this.mouseForce = 0.5;
         }
 
-        if (!checkWebGL()) {
-            document.getElementById('error-screen').style.display = 'flex';
-            throw new Error('WebGL not supported');
+        addBody(x, y, radius) {
+            const body = {
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
+                radius: radius,
+                mass: radius * 0.5,
+                mesh: null 
+            };
+            this.bodies.push(body);
+            return body;
         }
 
-        // ==========================================
-        // CUSTOM PHYSICS ENGINE
-        // ==========================================
-        class PhysicsWorld {
-            constructor(width, height) {
-                this.width = width;
-                this.height = height;
-                this.bodies = [];
-                this.friction = 0.96;
-                this.mouseInteractionRadius = isMobile ? 180 : 150; 
-                this.mouseForce = 0.5;
-            }
-
-            addBody(x, y, radius) {
-                const body = {
-                    x: x, y: y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    radius: radius,
-                    mass: radius * 0.5,
-                    mesh: null 
-                };
-                this.bodies.push(body);
-                return body;
-            }
-
-            update(mouseX, mouseY, cursorVelocity) {
-                const iterations = 3;
-                
-                for (let k = 0; k < iterations; k++) {
-                    for (let i = 0; i < this.bodies.length; i++) {
-                        let b = this.bodies[i];
-                        
-                        if (k === 0) {
-                            b.vx *= this.friction;
-                            b.vy *= this.friction;
-
-                            let dx = mouseX - b.x;
-                            let dy = mouseY - b.y;
-                            let dist = Math.sqrt(dx * dx + dy * dy);
-                            if (dist < this.mouseInteractionRadius) {
-                                let force = (this.mouseInteractionRadius - dist) / this.mouseInteractionRadius;
-                                b.vx += (cursorVelocity.x * force * this.mouseForce);
-                                b.vy += (cursorVelocity.y * force * this.mouseForce);
-                            }
-
-                            b.x += b.vx;
-                            b.y += b.vy;
-                        }
-
-                        const boundsX = this.width / 2;
-                        const boundsY = this.height / 2;
-
-                        if (b.x < -boundsX + b.radius) { b.x = -boundsX + b.radius; b.vx *= -0.8; }
-                        if (b.x > boundsX - b.radius) { b.x = boundsX - b.radius; b.vx *= -0.8; }
-                        if (b.y < -boundsY + b.radius) { b.y = -boundsY + b.radius; b.vy *= -0.8; }
-                        if (b.y > boundsY - b.radius) { b.y = boundsY - b.radius; b.vy *= -0.8; }
-                    }
-
-                    for (let i = 0; i < this.bodies.length; i++) {
-                        for (let j = i + 1; j < this.bodies.length; j++) {
-                            let b1 = this.bodies[i];
-                            let b2 = this.bodies[j];
-                            let dx = b2.x - b1.x;
-                            let dy = b2.y - b1.y;
-                            let dist = Math.sqrt(dx * dx + dy * dy);
-                            let minDist = b1.radius + b2.radius;
-
-                            if (dist < minDist) {
-                                let angle = Math.atan2(dy, dx);
-                                let overlap = minDist - dist;
-                                
-                                let totalMass = b1.mass + b2.mass;
-                                let m1Ratio = b2.mass / totalMass;
-                                let m2Ratio = b1.mass / totalMass;
-
-                                b1.x -= Math.cos(angle) * overlap * m1Ratio;
-                                b1.y -= Math.sin(angle) * overlap * m1Ratio;
-                                b2.x += Math.cos(angle) * overlap * m2Ratio;
-                                b2.y += Math.sin(angle) * overlap * m2Ratio;
-
-                                let nx = Math.cos(angle);
-                                let ny = Math.sin(angle);
-                                let kx = (b1.vx - b2.vx);
-                                let ky = (b1.vy - b2.vy);
-                                let p = 2.0 * (nx * kx + ny * ky) / (b1.mass + b2.mass);
-                                
-                                b1.vx -= p * b2.mass * nx * 0.5;
-                                b1.vy -= p * b2.mass * ny * 0.5;
-                                b2.vx += p * b1.mass * nx * 0.5;
-                                b2.vy += p * b1.mass * ny * 0.5;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ==========================================
-        // WEBGL ENGINE
-        // ==========================================
-        const container = document.getElementById('webgl-container');
-        const HUD_fps = document.getElementById('fps-counter');
-        const HUD_blobs = document.getElementById('blob-counter');
-        const cursorEl = document.getElementById('cursor');
-
-        const scene = new THREE.Scene();
-        
-        let aspect = window.innerWidth / window.innerHeight;
-        let frustumSize = window.innerHeight;
-        const camera = new THREE.OrthographicCamera(
-            frustumSize * aspect / -2, frustumSize * aspect / 2,
-            frustumSize / 2, frustumSize / -2,
-            0.1, 1000
-        );
-        camera.position.z = 100;
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-        renderer.setPixelRatio(OPTIMIZED_DPR); 
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        container.appendChild(renderer.domElement);
-
-        // ==========================================
-        // OPTIMIZED DYNAMIC BACKGROUND GENERATOR
-        // ==========================================
-        const bgCanvas = document.createElement('canvas');
-        const texSize = isMobile ? 256 : 512; 
-        bgCanvas.width = texSize;
-        bgCanvas.height = texSize;
-        const bgCtx = bgCanvas.getContext('2d', { alpha: false });
-        const bgTexture = new THREE.CanvasTexture(bgCanvas);
-        bgTexture.colorSpace = THREE.SRGBColorSpace;
-        bgTexture.minFilter = THREE.LinearFilter; 
-        scene.background = bgTexture;
-        scene.environment = bgTexture; 
-
-        function updateBackgroundTexture(time) {
-            const w = bgCanvas.width;
-            const h = bgCanvas.height;
+        update(mouseX, mouseY, cursorVelocity) {
+            const iterations = 3;
             
-            bgCtx.fillStyle = '#000000'; 
-            bgCtx.fillRect(0, 0, w, h);
-            
-            const cx1 = w * 0.5 + Math.sin(time * 0.0005) * w * 0.3;
-            const cy1 = h * 0.5 + Math.cos(time * 0.0007) * h * 0.3;
-            const grd1 = bgCtx.createRadialGradient(cx1, cy1, 0, cx1, cy1, w * 0.6);
-            grd1.addColorStop(0, '#ff1a53');
-            grd1.addColorStop(1, 'transparent');
-            
-            const cx2 = w * 0.5 + Math.cos(time * 0.0004) * w * 0.4;
-            const cy2 = h * 0.5 + Math.sin(time * 0.0006) * h * 0.4;
-            const grd2 = bgCtx.createRadialGradient(cx2, cy2, 0, cx2, cy2, w * 0.6);
-            grd2.addColorStop(0, '#1a53ff');
-            grd2.addColorStop(1, 'transparent');
-
-            const cx3 = w * 0.5 + Math.sin(time * 0.0008) * w * 0.2;
-            const cy3 = h * 0.5 + Math.cos(time * 0.0003) * h * 0.2;
-            const grd3 = bgCtx.createRadialGradient(cx3, cy3, 0, cx3, cy3, w * 0.5);
-            grd3.addColorStop(0, '#00ffcc');
-            grd3.addColorStop(1, 'transparent');
-
-            bgCtx.globalCompositeOperation = 'screen';
-            bgCtx.fillStyle = grd1; bgCtx.fillRect(0, 0, w, h);
-            bgCtx.fillStyle = grd2; bgCtx.fillRect(0, 0, w, h);
-            bgCtx.fillStyle = grd3; bgCtx.fillRect(0, 0, w, h);
-            bgCtx.globalCompositeOperation = 'source-over';
-
-            bgTexture.needsUpdate = true;
-        }
-
-        // ==========================================
-        // HIGH-FIDELITY GLASS MATERIAL & GEOMETRY
-        // ==========================================
-        const baseRadius = 40;
-        const geometry = new THREE.IcosahedronGeometry(1, 32); 
-        
-        const glassMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
-            metalness: 0.05,         
-            roughness: 0.02,         
-            transmission: 1.0, 
-            ior: 1.52,               
-            thickness: 60.0,         
-            transparent: true,
-            opacity: 1.0,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.02 
-        });
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(ambientLight);
-
-        const dLight1 = new THREE.DirectionalLight(0xffffff, 3.5);
-        dLight1.position.set(100, 200, 300);
-        scene.add(dLight1);
-
-        const dLight2 = new THREE.DirectionalLight(0xff1a53, 4);
-        dLight2.position.set(-100, -200, 100);
-        scene.add(dLight2);
-        
-        const dLight3 = new THREE.DirectionalLight(0x1a53ff, 2.5); 
-        dLight3.position.set(200, 0, -200);
-        scene.add(dLight3);
-
-        // ==========================================
-        // LIQUID TEXT HOVER ENGINE
-        // ==========================================
-        const liquidTexts = document.querySelectorAll('.liquid-text-effect');
-        const displacementMap = document.getElementById('displacement-map');
-        let rippleScale = 0;
-        let targetRippleScale = 0;
-
-        liquidTexts.forEach(el => {
-            el.addEventListener('mouseenter', () => {
-                if (!isMobile) targetRippleScale = 12;
-            });
-            el.addEventListener('mouseleave', () => targetRippleScale = 0);
-        });
-
-        // ==========================================
-        // SYSTEM INTEGRATION
-        // ==========================================
-        const physics = new PhysicsWorld(window.innerWidth, window.innerHeight);
-        
-        let mouseX = -9999;
-        let mouseY = -9999;
-        let pMouseX = mouseX;
-        let pMouseY = mouseY;
-        let cursorVelocity = { x: 0, y: 0 };
-
-        function mapScreenToWorld(clientX, clientY) {
-            const x = (clientX / window.innerWidth) * camera.right * 2 - camera.right;
-            const y = -(clientY / window.innerHeight) * camera.top * 2 + camera.top;
-            return { x, y };
-        }
-
-        function createBlob(clientX, clientY) {
-            if (physics.bodies.length >= MAX_BLOBS) return; 
-
-            const wPos = mapScreenToWorld(clientX, clientY);
-            const radius = baseRadius * (0.8 + Math.random() * 0.7);
-            const b = physics.addBody(wPos.x, wPos.y, radius);
-            
-            b.mesh = new THREE.Mesh(geometry, glassMaterial);
-            b.mesh.scale.set(radius, radius, radius);
-            b.mesh.position.set(b.x, b.y, 0);
-            scene.add(b.mesh);
-            
-            HUD_blobs.textContent = `BLOBS: ${physics.bodies.length}`;
-            
-            if (!isMobile) {
-                cursorEl.classList.add('active');
-                setTimeout(() => cursorEl.classList.remove('active'), 200);
-            }
-        }
-
-        // ==========================================
-        // INPUT ROUTING & TELEMETRY
-        // ==========================================
-        window.addEventListener('resize', () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            renderer.setSize(width, height);
-            
-            aspect = width / height;
-            frustumSize = height;
-            camera.left = -frustumSize * aspect / 2;
-            camera.right = frustumSize * aspect / 2;
-            camera.top = frustumSize / 2;
-            camera.bottom = -frustumSize / 2;
-            camera.updateProjectionMatrix();
-
-            physics.width = camera.right * 2;
-            physics.height = camera.top * 2;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (isMobile) return; 
-            const wPos = mapScreenToWorld(e.clientX, e.clientY);
-            mouseX = wPos.x;
-            mouseY = wPos.y;
-            
-            cursorEl.style.left = `${e.clientX}px`;
-            cursorEl.style.top = `${e.clientY}px`;
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target.tagName.toLowerCase() === 'a') return;
-            if (isMobile) return; 
-            createBlob(e.clientX, e.clientY);
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            const touch = e.touches[0];
-            const wPos = mapScreenToWorld(touch.clientX, touch.clientY);
-            mouseX = wPos.x;
-            mouseY = wPos.y;
-        }, { passive: false });
-
-        window.addEventListener('touchstart', (e) => {
-            if (e.target.tagName.toLowerCase() === 'a') return;
-            const touch = e.touches[0];
-            const wPos = mapScreenToWorld(touch.clientX, touch.clientY);
-            
-            mouseX = wPos.x;
-            mouseY = wPos.y;
-            pMouseX = wPos.x;
-            pMouseY = wPos.y;
-            cursorVelocity.x = 0;
-            cursorVelocity.y = 0;
-
-            createBlob(touch.clientX, touch.clientY);
-        }, { passive: false });
-
-        window.addEventListener('touchend', () => {
-            cursorVelocity = { x: 0, y: 0 };
-            mouseX = -9999;
-            mouseY = -9999;
-            pMouseX = mouseX;
-            pMouseY = mouseY;
-        }, { passive: false });
-
-        // ==========================================
-        // INITIALIZATION
-        // ==========================================
-        const initialBlobs = isMobile ? 4 : 6;
-        for (let i = 0; i < initialBlobs; i++) {
-            createBlob(
-                window.innerWidth / 2 + (Math.random() - 0.5) * (window.innerWidth * 0.5), 
-                window.innerHeight / 2 + (Math.random() - 0.5) * (window.innerHeight * 0.5)
-            );
-        }
-
-        // ==========================================
-        // RENDER PIPELINE
-        // ==========================================
-        let lastTime = performance.now();
-        let frameCount = 0;
-
-        function animate(time) {
-            requestAnimationFrame(animate);
-
-            frameCount++;
-            if (time - lastTime >= 1000) {
-                HUD_fps.textContent = `${frameCount} FPS`;
-                frameCount = 0;
-                lastTime = time;
-            }
-
-            if (mouseX !== -9999 && pMouseX !== -9999) {
-                cursorVelocity.x = mouseX - pMouseX;
-                cursorVelocity.y = mouseY - pMouseY;
-            }
-            pMouseX = mouseX;
-            pMouseY = mouseY;
-
-            cursorVelocity.x *= 0.95;
-            cursorVelocity.y *= 0.95;
-
-            // Update Liquid Text Ripple Interpolation
-            rippleScale += (targetRippleScale - rippleScale) * 0.08;
-            if (Math.abs(targetRippleScale - rippleScale) > 0.01) {
-                displacementMap.setAttribute('scale', rippleScale.toFixed(2));
-            } else if (rippleScale !== targetRippleScale) {
-                rippleScale = targetRippleScale;
-                displacementMap.setAttribute('scale', rippleScale);
-            }
-
-            physics.update(mouseX, mouseY, cursorVelocity);
-
-            physics.bodies.forEach(b => {
-                b.mesh.position.set(b.x, b.y, 0);
-
-                let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-                if (speed > 0.1) {
-                    let angle = Math.atan2(b.vy, b.vx);
-                    b.mesh.rotation.z = angle;
+            for (let k = 0; k < iterations; k++) {
+                for (let i = 0; i < this.bodies.length; i++) {
+                    let b = this.bodies[i];
                     
-                    let stretch = 1 + speed * 0.05;
-                    let squash = 1 - speed * 0.025;
-                    stretch = Math.min(stretch, 1.8);
-                    squash = Math.max(squash, 0.4);
+                    if (k === 0) {
+                        b.vx *= this.friction;
+                        b.vy *= this.friction;
 
-                    b.mesh.scale.set(b.radius * stretch, b.radius * squash, b.radius * squash);
-                } else {
-                    b.mesh.scale.set(b.radius, b.radius, b.radius);
+                        let dx = mouseX - b.x;
+                        let dy = mouseY - b.y;
+                        let dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < this.mouseInteractionRadius) {
+                            let force = (this.mouseInteractionRadius - dist) / this.mouseInteractionRadius;
+                            b.vx += (cursorVelocity.x * force * this.mouseForce);
+                            b.vy += (cursorVelocity.y * force * this.mouseForce);
+                        }
+
+                        b.x += b.vx;
+                        b.y += b.vy;
+                    }
+
+                    const boundsX = this.width / 2;
+                    const boundsY = this.height / 2;
+
+                    if (b.x < -boundsX + b.radius) { b.x = -boundsX + b.radius; b.vx *= -0.8; }
+                    if (b.x > boundsX - b.radius) { b.x = boundsX - b.radius; b.vx *= -0.8; }
+                    if (b.y < -boundsY + b.radius) { b.y = -boundsY + b.radius; b.vy *= -0.8; }
+                    if (b.y > boundsY - b.radius) { b.y = boundsY - b.radius; b.vy *= -0.8; }
                 }
-            });
 
-            updateBackgroundTexture(time);
+                for (let i = 0; i < this.bodies.length; i++) {
+                    for (let j = i + 1; j < this.bodies.length; j++) {
+                        let b1 = this.bodies[i];
+                        let b2 = this.bodies[j];
+                        let dx = b2.x - b1.x;
+                        let dy = b2.y - b1.y;
+                        let dist = Math.sqrt(dx * dx + dy * dy);
+                        let minDist = b1.radius + b2.radius;
 
-            dLight2.position.x = Math.sin(time * 0.001) * 300;
-            dLight2.position.y = Math.cos(time * 0.002) * 300;
+                        if (dist < minDist) {
+                            let angle = Math.atan2(dy, dx);
+                            let overlap = minDist - dist;
+                            
+                            let totalMass = b1.mass + b2.mass;
+                            let m1Ratio = b2.mass / totalMass;
+                            let m2Ratio = b1.mass / totalMass;
 
-            renderer.render(scene, camera);
+                            b1.x -= Math.cos(angle) * overlap * m1Ratio;
+                            b1.y -= Math.sin(angle) * overlap * m1Ratio;
+                            b2.x += Math.cos(angle) * overlap * m2Ratio;
+                            b2.y += Math.sin(angle) * overlap * m2Ratio;
+
+                            let nx = Math.cos(angle);
+                            let ny = Math.sin(angle);
+                            let kx = (b1.vx - b2.vx);
+                            let ky = (b1.vy - b2.vy);
+                            let p = 2.0 * (nx * kx + ny * ky) / (b1.mass + b2.mass);
+                            
+                            b1.vx -= p * b2.mass * nx * 0.5;
+                            b1.vy -= p * b2.mass * ny * 0.5;
+                            b2.vx += p * b1.mass * nx * 0.5;
+                            b2.vy += p * b1.mass * ny * 0.5;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    const container = document.getElementById('webgl-container');
+    const cursorEl = document.getElementById('cursor');
+    const triggerEl = document.getElementById('interaction-trigger');
+    
+    let interactionFired = false;
+    
+    function resolveTrigger() {
+        if (!interactionFired) {
+            interactionFired = true;
+            if (triggerEl) triggerEl.classList.add('trigger-hidden');
+        }
+    }
+
+    setTimeout(resolveTrigger, 15000);
+
+    const scene = new THREE.Scene();
+    
+    let aspect = window.innerWidth / window.innerHeight;
+    let frustumSize = window.innerHeight;
+    const camera = new THREE.OrthographicCamera(
+        frustumSize * aspect / -2, frustumSize * aspect / 2,
+        frustumSize / 2, frustumSize / -2,
+        0.1, 1000
+    );
+    camera.position.z = 100;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(OPTIMIZED_DPR); 
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
+
+    const bgCanvas = document.createElement('canvas');
+    const texSize = isMobile ? 256 : 512; 
+    bgCanvas.width = texSize;
+    bgCanvas.height = texSize;
+    const bgCtx = bgCanvas.getContext('2d', { alpha: false });
+    const bgTexture = new THREE.CanvasTexture(bgCanvas);
+    bgTexture.colorSpace = THREE.SRGBColorSpace;
+    bgTexture.minFilter = THREE.LinearFilter; 
+    scene.background = bgTexture;
+    scene.environment = bgTexture; 
+
+    function updateBackgroundTexture(time) {
+        const w = bgCanvas.width;
+        const h = bgCanvas.height;
+        
+        bgCtx.fillStyle = '#F4F1EA'; 
+        bgCtx.fillRect(0, 0, w, h);
+        
+        const cx1 = w * 0.5 + Math.sin(time * 0.0005) * w * 0.3;
+        const cy1 = h * 0.5 + Math.cos(time * 0.0007) * h * 0.3;
+        const grd1 = bgCtx.createRadialGradient(cx1, cy1, 0, cx1, cy1, w * 0.6);
+        grd1.addColorStop(0, '#9DB4A5'); 
+        grd1.addColorStop(1, 'transparent');
+        
+        const cx2 = w * 0.5 + Math.cos(time * 0.0004) * w * 0.4;
+        const cy2 = h * 0.5 + Math.sin(time * 0.0006) * h * 0.4;
+        const grd2 = bgCtx.createRadialGradient(cx2, cy2, 0, cx2, cy2, w * 0.6);
+        grd2.addColorStop(0, '#7A9082'); 
+        grd2.addColorStop(1, 'transparent');
+
+        const cx3 = w * 0.5 + Math.sin(time * 0.0008) * w * 0.2;
+        const cy3 = h * 0.5 + Math.cos(time * 0.0003) * h * 0.2;
+        const grd3 = bgCtx.createRadialGradient(cx3, cy3, 0, cx3, cy3, w * 0.5);
+        grd3.addColorStop(0, '#D38B7A'); 
+        grd3.addColorStop(1, 'transparent');
+
+        bgCtx.globalCompositeOperation = 'multiply'; 
+        bgCtx.fillStyle = grd1; bgCtx.fillRect(0, 0, w, h);
+        bgCtx.fillStyle = grd2; bgCtx.fillRect(0, 0, w, h);
+        bgCtx.fillStyle = grd3; bgCtx.fillRect(0, 0, w, h);
+        bgCtx.globalCompositeOperation = 'source-over';
+
+        bgTexture.needsUpdate = true;
+    }
+
+    const baseRadius = 40;
+    const geometry = new THREE.IcosahedronGeometry(1, 32); 
+    
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        metalness: 0.05,         
+        roughness: 0.02,         
+        transmission: 1.0, 
+        ior: 1.52,               
+        thickness: 60.0,         
+        transparent: true,
+        opacity: 1.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.02 
+    });
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const dLight1 = new THREE.DirectionalLight(0xffffff, 3.5);
+    dLight1.position.set(100, 200, 300);
+    scene.add(dLight1);
+
+    const dLight2 = new THREE.DirectionalLight(0x9DB4A5, 4); 
+    dLight2.position.set(-100, -200, 100);
+    scene.add(dLight2);
+    
+    const dLight3 = new THREE.DirectionalLight(0xD38B7A, 2.5); 
+    dLight3.position.set(200, 0, -200);
+    scene.add(dLight3);
+
+    const liquidTexts = document.querySelectorAll('.liquid-text-effect');
+    const displacementMap = document.getElementById('displacement-map');
+    let rippleScale = 0;
+    let targetRippleScale = 0;
+
+    liquidTexts.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            if (!isMobile) targetRippleScale = 12;
+        });
+        el.addEventListener('mouseleave', () => targetRippleScale = 0);
+    });
+
+    const physics = new PhysicsWorld(window.innerWidth, window.innerHeight);
+    
+    let mouseX = -9999;
+    let mouseY = -9999;
+    let pMouseX = mouseX;
+    let pMouseY = mouseY;
+    let cursorVelocity = { x: 0, y: 0 };
+
+    function mapScreenToWorld(clientX, clientY) {
+        const x = (clientX / window.innerWidth) * camera.right * 2 - camera.right;
+        const y = -(clientY / window.innerHeight) * camera.top * 2 + camera.top;
+        return { x, y };
+    }
+
+    function createBlob(clientX, clientY, initVy = null) {
+        if (physics.bodies.length >= MAX_BLOBS) return; 
+
+        const wPos = mapScreenToWorld(clientX, clientY);
+        const radius = baseRadius * (0.8 + Math.random() * 0.7);
+        const b = physics.addBody(wPos.x, wPos.y, radius);
+        
+        if (initVy !== null) {
+            b.vy = initVy;
+            b.vx = (Math.random() - 0.5) * 5; 
         }
 
-        setTimeout(() => {
-            container.classList.add('ready');
-            animate(performance.now());
-        }, 300); 
-    </script>
-</body>
+        b.mesh = new THREE.Mesh(geometry, glassMaterial);
+        b.mesh.scale.set(radius, radius, radius);
+        b.mesh.position.set(b.x, b.y, 0);
+        scene.add(b.mesh);
+        
+        if (!isMobile) {
+            cursorEl.classList.add('active');
+            setTimeout(() => cursorEl.classList.remove('active'), 200);
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        renderer.setSize(width, height);
+        
+        aspect = width / height;
+        frustumSize = height;
+        camera.left = -frustumSize * aspect / 2;
+        camera.right = frustumSize * aspect / 2;
+        camera.top = frustumSize / 2;
+        camera.bottom = -frustumSize / 2;
+        camera.updateProjectionMatrix();
+
+        physics.width = camera.right * 2;
+        physics.height = camera.top * 2;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isMobile) return; 
+        const wPos = mapScreenToWorld(e.clientX, e.clientY);
+        mouseX = wPos.x;
+        mouseY = wPos.y;
+        
+        cursorEl.style.left = `${e.clientX}px`;
+        cursorEl.style.top = `${e.clientY}px`;
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target.tagName.toLowerCase() === 'a') return;
+        resolveTrigger();
+        if (isMobile) return; 
+        createBlob(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const wPos = mapScreenToWorld(touch.clientX, touch.clientY);
+        mouseX = wPos.x;
+        mouseY = wPos.y;
+    }, { passive: false });
+
+    window.addEventListener('touchstart', (e) => {
+        if (e.target.tagName.toLowerCase() === 'a') return;
+        resolveTrigger();
+        const touch = e.touches[0];
+        const wPos = mapScreenToWorld(touch.clientX, touch.clientY);
+        
+        mouseX = wPos.x;
+        mouseY = wPos.y;
+        pMouseX = wPos.x;
+        pMouseY = wPos.y;
+        cursorVelocity.x = 0;
+        cursorVelocity.y = 0;
+
+        createBlob(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+        cursorVelocity = { x: 0, y: 0 };
+        mouseX = -9999;
+        mouseY = -9999;
+        pMouseX = mouseX;
+        pMouseY = mouseY;
+    }, { passive: false });
+
+    const initialBlobs = Math.floor(Math.random() * 2) + 1; 
+    for (let i = 0; i < initialBlobs; i++) {
+        createBlob(
+            window.innerWidth / 2, 
+            window.innerHeight / 2, 
+            -15 
+        );
+    }
+
+    function animate(time) {
+        requestAnimationFrame(animate);
+
+        if (mouseX !== -9999 && pMouseX !== -9999) {
+            cursorVelocity.x = mouseX - pMouseX;
+            cursorVelocity.y = mouseY - pMouseY;
+        }
+        pMouseX = mouseX;
+        pMouseY = mouseY;
+
+        cursorVelocity.x *= 0.95;
+        cursorVelocity.y *= 0.95;
+
+        rippleScale += (targetRippleScale - rippleScale) * 0.08;
+        if (Math.abs(targetRippleScale - rippleScale) > 0.01) {
+            displacementMap.setAttribute('scale', rippleScale.toFixed(2));
+        } else if (rippleScale !== targetRippleScale) {
+            rippleScale = targetRippleScale;
+            displacementMap.setAttribute('scale', rippleScale);
+        }
+
+        physics.update(mouseX, mouseY, cursorVelocity);
+
+        physics.bodies.forEach(b => {
+            b.mesh.position.set(b.x, b.y, 0);
+
+            let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+            if (speed > 0.1) {
+                let angle = Math.atan2(b.vy, b.vx);
+                b.mesh.rotation.z = angle;
+                
+                let stretch = 1 + speed * 0.05;
+                let squash = 1 - speed * 0.025;
+                stretch = Math.min(stretch, 1.8);
+                squash = Math.max(squash, 0.4);
+
+                b.mesh.scale.set(b.radius * stretch, b.radius * squash, b.radius * squash);
+            } else {
+                b.mesh.scale.set(b.radius, b.radius, b.radius);
+            }
+        });
+
+        updateBackgroundTexture(time);
+
+        dLight2.position.x = Math.sin(time * 0.001) * 300;
+        dLight2.position.y = Math.cos(time * 0.002) * 300;
+
+        renderer.render(scene, camera);
+    }
+
+    setTimeout(() => {
+        container.classList.add('ready');
+        animate(performance.now());
+    }, 300); 
+</script>
+</body> 
 </html>
